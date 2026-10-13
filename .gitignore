@@ -10,3 +10,6 @@ client/.env
 npm-debug.log*
 coverage/
 .vite/
+*.db
+*.db-shm
+*.db-wal
