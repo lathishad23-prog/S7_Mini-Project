@@ -31,6 +31,18 @@ npm run dev
 
 Open http://localhost:5173.
 
+## Deploy to Vercel
+
+Import the repository into Vercel with the repository root as the project root. The root `vercel.json` builds the Vite client, serves it from `client/dist`, routes `/api/*` to the Express serverless function, and falls back to the React app for client-side routes.
+
+Add these environment variables in the Vercel project settings for every deployment environment:
+
+- `MONGODB_URI`: connection string for a MongoDB Atlas cluster accessible to Vercel
+- `MONGODB_DB`: database name (optional; defaults to `labsync`)
+- `JWT_SECRET`: a long, random secret used to sign authentication tokens
+
+The API initializes its MongoDB connection and demo seed data on its first request. Replace the demo seed credentials and remove or restrict public registration before using this project with real patient data.
+
 ### Demo credentials
 - Admin: admin@labsync.ai / admin123
 - Technician: tech1@labsync.ai / tech123

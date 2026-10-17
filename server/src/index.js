@@ -3,6 +3,7 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { fileURLToPath } from 'node:url';
 import { connectDatabase, getObjectId, toClientRecord, ensureSeedData } from './database.js';
 
 const app = express();
@@ -11,6 +12,26 @@ app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 let db;
+let databaseReady;
+
+app.use(async (req, res, next) => {
+  try {
+    if (!databaseReady) {
+      databaseReady = (async () => {
+        db = await connectDatabase();
+        await ensureSeedData();
+      })().catch((error) => {
+        databaseReady = undefined;
+        throw error;
+      });
+    }
+    await databaseReady;
+    next();
+  } catch (error) {
+    console.error('Failed to initialize database', error);
+    res.status(503).json({ message: 'Database unavailable' });
+  }
+});
 
 function signToken(user) {
   return jwt.sign({ id: user._id.toString(), role: user.role, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '8h' });
@@ -323,12 +344,21 @@ app.get('/profile', authMiddleware('technician'), async (req, res) => {
 });
 
 async function start() {
-  db = await connectDatabase();
-  await ensureSeedData();
+  if (!databaseReady) {
+    databaseReady = (async () => {
+      db = await connectDatabase();
+      await ensureSeedData();
+    })();
+  }
+  await databaseReady;
   app.listen(3001, () => console.log('Server listening on http://localhost:3001'));
 }
 
-start().catch((err) => {
-  console.error('Failed to start server', err);
-  process.exit(1);
-});
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  start().catch((err) => {
+    console.error('Failed to start server', err);
+    process.exit(1);
+  });
+}
+
+export default app;
